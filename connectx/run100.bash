@@ -1,0 +1,1 @@
+javac -cp ".." *.java */*.java && java -cp ".." connectx.CXPlayerTester 6 7 4 connectx.L0.L0 connectx.ALPlayer.ALPlayer -t 10 -r 100

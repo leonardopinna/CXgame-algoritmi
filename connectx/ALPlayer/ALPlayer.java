@@ -24,6 +24,7 @@ import connectx.CXGameState;
 import connectx.CXCell;
 import java.util.TreeSet;
 import java.util.Random;
+import java.sql.Time;
 import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 
@@ -41,6 +42,9 @@ public class ALPlayer implements CXPlayer {
 	private int  TIMEOUT;
 	private long START;
 
+	// Aggiunto attributo, non sono sicuro che vada bene
+	private int MAX_DEPTH;
+
 	/* Default empty constructor */
 	public ALPlayer() {
 	}
@@ -51,15 +55,13 @@ public class ALPlayer implements CXPlayer {
 		myWin   = first ? CXGameState.WINP1 : CXGameState.WINP2;
 		yourWin = first ? CXGameState.WINP2 : CXGameState.WINP1;
 		TIMEOUT = timeout_in_secs;
+
+		// Aggiunto il parametro di profondità massimo per il giocatore (da testare)
+		MAX_DEPTH = 2;
 	}
 
 	/**
 	 * Selects a free colum on game board.
-	 * <p>
-	 * Selects a winning column (if any), otherwise selects a column (if any) 
-	 * that prevents the adversary to win with his next move. If both previous
-	 * cases do not apply, selects a random column.
-	 * </p>
 	 */
 	public int selectColumn(CXBoard B) {
 		START = System.currentTimeMillis(); // Save starting time
@@ -68,11 +70,10 @@ public class ALPlayer implements CXPlayer {
 		int save    = L[rand.nextInt(L.length)]; // Save a random column 
 
 		try {
-			int col = singleMoveWin(B,L);
-			if(col != -1) 
-				return col;
-			else
-				return singleMoveBlock(B,L);
+			// Codice modificato: la logica di selezione della mossa è gestita dal metodo getBestMove(Board).
+			int col = getBestMove(B, MAX_DEPTH);
+			return col;
+
 		} catch (TimeoutException e) {
 			System.err.println("Timeout!!! Random column selected");
 			return save;
@@ -83,6 +84,91 @@ public class ALPlayer implements CXPlayer {
 		if ((System.currentTimeMillis() - START) / 1000.0 >= TIMEOUT * (99.0 / 100.0))
 			throw new TimeoutException();
 	}
+
+	// Funzione evaluateMove() usata per stabilire il punteggio dello stato della partita
+	private int evaluatePosition(CXBoard B) {
+		return rand.nextInt(10);
+	}
+
+	// Ritorna la colonna dove giocare che garantisce un punteggio maggiore.
+	public int getBestMove(CXBoard B, int Depth) throws TimeoutException {
+		// Prendo un array di colonne disponibili per la prossima mossa
+        Integer[] Q = B.getAvailableColumns();
+
+		// Valuto ogni mossa possibile e inserisco il valore nell'array corrispondente
+		Integer[] vals = new Integer[Q.length];
+
+        for (int i = 0; i < Q.length; i++) {
+                vals[i] = evaluateMove(B, i, true, Depth);
+        }
+		// Trovo la mossa (bestCol) che permette di ottenere il miglior punteggio (bestScore)
+		int bestCol = -1;
+        int bestScore = Integer.MIN_VALUE;
+        for (int i = 0; i < vals.length; i++) {
+            if (vals[i] > bestScore) {
+				bestScore = vals[i];
+                bestCol = Q[i];
+            }
+			System.out.print(bestCol);
+        }
+
+		// Ritorno la colonna da giocare
+        return bestCol;
+    }
+
+	// Algoritmo MiniMax con Iterative Deepening fino a profondità D presa in input.
+	private int evaluateMove(CXBoard B, int column, boolean maxPlayer, int depth) throws TimeoutException {
+
+		// Caso base: ho raggiunto la profondità massima, o ho trovato una posizione a una mossa vincente. 
+		// NOTA: probabilmente questo if non è necessario e ha un costo computazionale importante (direi O(n))
+		if (B.gameState() == myWin || B.gameState() == yourWin) {
+			return column;
+		}
+		if (singleMoveWin(B, B.getAvailableColumns()) > 0) {
+			return singleMoveWin(B, B.getAvailableColumns());
+		}
+        if (depth == 0 || (singleMoveWin(B, B.getAvailableColumns()) < 0)) {
+			CXBoard newB = B.copy();
+            return evaluatePosition(newB);
+		}
+		// Caso giocatore che massimizza
+        if (maxPlayer) {
+            int bestScore = Integer.MIN_VALUE;
+
+			// Creo nuova Board copiata sulla quale simulare le mosse
+            CXBoard newB = B.copy();
+
+			// Assegno la mossa alla board
+			newB.markColumn(column);
+
+			// Calcolo il punteggio migliore
+			Integer[] moves = newB.getAvailableColumns();
+            for (int i = 0; i < moves.length; i++) {
+				int score = evaluateMove(newB, moves[i], false, depth - 1);
+				bestScore = Math.max(bestScore, score);
+            }
+            return bestScore;
+        } 
+		// Caso giocatore che minimizza
+		else {
+            int bestScore = Integer.MAX_VALUE;
+
+			// Creo nuova Board copiata sulla quale simulare le mosse
+            CXBoard newB = B.copy();
+
+			// Assegno la mossa alla board
+            newB.markColumn(column);
+
+			// Calcolo il punteggio migliore
+			Integer[] moves = newB.getAvailableColumns();
+            for (int i = 0; i < moves.length; i++) {
+				int score = evaluateMove(newB, moves[i], true, depth - 1);
+				
+				bestScore = Math.min(bestScore, score);
+            }
+            return bestScore;
+        }
+    }
 
 	/**
 	 * Check if we can win in a single move
@@ -101,10 +187,10 @@ public class ALPlayer implements CXPlayer {
 	}
 
 	/**
-   * Check if we can block adversary's victory 
-   *
-   * Returns a blocking column if there is one, otherwise a random one
-   */
+	 * Check if we can block adversary's victory 
+	 *
+	 * Returns a blocking column if there is one, otherwise a random one
+   	 */
 	private int singleMoveBlock(CXBoard B, Integer[] L) throws TimeoutException {
 		TreeSet<Integer> T = new TreeSet<Integer>(); // We collect here safe column indexes
 
