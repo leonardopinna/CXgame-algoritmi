@@ -16,7 +16,7 @@
  *  GNU General Public License for more details; see <https://www.gnu.org/licenses/>.
  */
 
-package connectx.L1;
+package connectx.ALPlayer;
 
 import connectx.CXPlayer;
 import connectx.CXBoard;
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeoutException;
  * randomly.
  * </p>
  */
-public class L1 implements CXPlayer {
+public class ALPlayer implements CXPlayer {
 	private Random rand;
 	private CXGameState myWin;
 	private CXGameState yourWin;
@@ -42,7 +42,7 @@ public class L1 implements CXPlayer {
 	private long START;
 
 	/* Default empty constructor */
-	public L1() {
+	public ALPlayer() {
 	}
 
 	public void initPlayer(int M, int N, int K, boolean first, int timeout_in_secs) {
@@ -140,6 +140,6 @@ public class L1 implements CXPlayer {
 	}
 
 	public String playerName() {
-		return "L1";
+		return "ALPlayer";
 	}
 }
