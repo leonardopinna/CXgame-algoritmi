@@ -10,9 +10,12 @@ import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import connectx.CXCellState;
 
-/**
- * Totally random software player.
- */
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+
 public class ALPlayer implements CXPlayer {
     private Random rand;
     private CXGameState myWin;
@@ -52,8 +55,9 @@ public class ALPlayer implements CXPlayer {
         START = System.currentTimeMillis();
         Integer[] L = B.getAvailableColumns();
         int save = L[rand.nextInt(L.length)];
-
-
+//AL MOMENTO LA MOSSA DEL "METTO IL GETTONE IN MEZZO ALLA PRIMA MOSSA" LA TENGO COMMENTATA PERCHE' SEMBRA ABBASSARE LA
+//QUANTITA' DI VITTORIE
+/* 
         if (isFirstPlayer && columns % 2 == 0) {  // Controlla se è il primo a giocare e il numero di colonne è pari
             int middleCol = columns / 2;
             if (Arrays.asList(L).contains(middleCol)) {
@@ -68,6 +72,7 @@ public class ALPlayer implements CXPlayer {
                 return middleCol;
 		}
 	}
+	*/
         try {
             int col = getBestMove(B, MAX_DEPTH);
             return col;
@@ -118,7 +123,7 @@ public class ALPlayer implements CXPlayer {
 		
 			return score;
 		}
-//DA CONTROLLARE SE CON CXCELLSTATE.P1 SI RIFERISCE AL NOSTRO GIOCATORE, OPPURE AL PRIMO CHE GIOCA
+
 		private int evaluatePotentialWinLines(CXBoard B) {
 			int score = 0;
 		
@@ -129,10 +134,11 @@ public class ALPlayer implements CXPlayer {
 					int playerCount = 0;
 		
 					for (int i = 0; i < getK(); i++) {
+						CXCellState cellState1 = B.cellState(row, col + i);
 		
-						if (B.cellState(row, col + i) == CXCellState.FREE) {
+						if ( cellState1== CXCellState.FREE) {
 							emptyCount++;
-						} else if (B.cellState(row, col + i) == CXCellState.P1 && isFirstPlayer || B.cellState(row, col + i) == CXCellState.P2 && !isFirstPlayer) {
+						} else if (cellState1 == CXCellState.P1 && isFirstPlayer || cellState1 == CXCellState.P2 && !isFirstPlayer) {
 							playerCount++;
 						} else {
 							playerCount = 0;
@@ -153,10 +159,10 @@ public class ALPlayer implements CXPlayer {
 					int playerCount = 0;
 		
 					for (int i = 0; i < getK(); i++) {
-		
-						if (B.cellState(row + i, col) == CXCellState.FREE) {
+						CXCellState cellState2= B.cellState(row + i, col);
+						if (cellState2 == CXCellState.FREE) {
 							emptyCount++;
-						} else if (B.cellState(row + i, col) == CXCellState.P1 && isFirstPlayer || B.cellState(row + i,col)== CXCellState.P2 && !isFirstPlayer ) {
+						} else if (cellState2 == CXCellState.P1 && isFirstPlayer || cellState2== CXCellState.P2 && !isFirstPlayer ) {
 							playerCount++;
 						} else {
 							playerCount = 0;
@@ -177,10 +183,11 @@ public class ALPlayer implements CXPlayer {
 					int playerCount = 0;
 		
 					for (int i = 0; i < getK(); i++) {
+						CXCellState cellState3= B.cellState(row - i, col + i);
 		
-						if (B.cellState(row - i, col + i) == CXCellState.FREE) {
+						if (cellState3== CXCellState.FREE) {
 							emptyCount++;
-						} else if (B.cellState(row - i, col + i) == CXCellState.P1 && isFirstPlayer || B.cellState(row - i, col + i)== CXCellState.P2 && !isFirstPlayer) {
+						} else if (cellState3== CXCellState.P1 && isFirstPlayer || cellState3== CXCellState.P2 && !isFirstPlayer) {
 							playerCount++;
 						} else {
 							playerCount = 0;
@@ -201,10 +208,11 @@ public class ALPlayer implements CXPlayer {
 					int playerCount = 0;
 		
 					for (int i = 0; i < getK(); i++) {
+						CXCellState cellState4= B.cellState(row + i, col + i);
 		
-						if (B.cellState(row + i, col + i) == CXCellState.FREE) {
+						if (cellState4== CXCellState.FREE) {
 							emptyCount++;
-						} else if (B.cellState(row + i, col + i) == CXCellState.P1 && isFirstPlayer || B.cellState(row + i, col + i) == CXCellState.P2 && !isFirstPlayer  ) {
+						} else if (cellState4== CXCellState.P1 && isFirstPlayer || cellState4== CXCellState.P2 && !isFirstPlayer  ) {
 							playerCount++;
 						} else {
 							playerCount = 0;
@@ -220,7 +228,7 @@ public class ALPlayer implements CXPlayer {
 		
 			return score;
 		}
-		
+		//HO RESO LA FORMULA UN PO' PIU' COMPLESSA
 		private int calculateLineScore(int playerCount, int emptyCount) {
 			// Calcola il punteggio in base al numero di gettoni del giocatore
 			// e al numero di celle vuote nella linea.
@@ -342,7 +350,8 @@ public int getBestMove(CXBoard B, int depth) throws TimeoutException {
 
     boolean isFirstMoveDone = !isFirstPlayer || (isFirstPlayer && (columns % 2 == 0 || B.numOfMarkedCells() > 0));
 
-    Arrays.sort(Q, Comparator.comparingInt(col -> {
+    List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
+    moves.sort(Comparator.comparingInt(col -> {
         CXBoard newB = B.copy();
         newB.markColumn(col);
         int score;
@@ -359,11 +368,12 @@ public int getBestMove(CXBoard B, int depth) throws TimeoutException {
 
         return score;
     }));
+    Collections.reverse(moves);
 
     int alpha = Integer.MIN_VALUE;
     int beta = Integer.MAX_VALUE;
 
-    for (int col : Q) {
+    for (int col : moves) {
         CXBoard newB = B.copy();
         newB.markColumn(col);
         int score;
@@ -399,16 +409,12 @@ public int getBestMove(CXBoard B, int depth) throws TimeoutException {
 	
 	
 	
-	
-	
-	
-	
 //evaluateMove ora, implementa un alpha-beta pruning
 	private int evaluateMove(CXBoard B, int column, boolean maxPlayer, int depth, int alpha, int beta) throws TimeoutException {
 		if (B.gameState() == myWin) {
 			return Integer.MAX_VALUE; // Vittoria immediata
 		}
-		if (B.gameState() == yourWin) {sdf
+		if (B.gameState() == yourWin) {
 			return Integer.MIN_VALUE; // Sconfitta immediata
 		}
 		if (depth == 0) {
@@ -459,6 +465,10 @@ public int getBestMove(CXBoard B, int depth) throws TimeoutException {
         return -1;
     }
 
+    public String playerName() {
+        return "ALPlayer";
+    }
+}
     public String playerName() {
         return "ALPlayer";
     }
