@@ -263,13 +263,13 @@ public class ALPlayer implements CXPlayer {
 	
 		// Valutazione delle diagonali ascendenti
 		for (int row = getK() - 1; row < getRows(); row++) {
-			for (int col = 0; col <= getColumns() - getK(); col++) {
+			// Partendo dalla prima diagonale disponibile, risale calcolando 
+			for (int col = 0; col < Math.min(row, getColumns()); col++) {
 				int emptyCount = 0;
 				int playerCount = 0;
 				int opponentCount = 0;
 
-				for (int i = 0; i < row; i++) {
-					CXCellState cellState3= B.cellState(row - i, i);
+					CXCellState cellState3= B.cellState(row - col, col);
 	
 					if (cellState3== CXCellState.FREE) {
 						emptyCount++;
@@ -280,8 +280,8 @@ public class ALPlayer implements CXPlayer {
 						playerCount = 0;
 						opponentCount++;
 					}
-				}
-	
+
+				
 				if (emptyCount > 0 && playerCount > 0) {
 					score += calculateLineScore(playerCount, emptyCount);
 				}
@@ -292,29 +292,25 @@ public class ALPlayer implements CXPlayer {
 		}
 	
 		// Valutazione delle diagonali discendenti
-		for (int row = 0; row <= getRows() - getK(); row++) {
-			for (int col = 0; col <= getColumns() - getK(); col++) {
+		for (int row = 0; row < getRows() - getK(); row++) {
+			for (int col = 0; col < Math.min(getRows() - getK() - row, getColumns()); col++) {
 				int emptyCount = 0;
 				int playerCount = 0;
 				int opponentCount = 0;
 
+				CXCellState cellState4= B.cellState(row + col, col);
 
-				for (int i = 0; i <= Math.min(getRows() - getK(),getColumns() - getK() ); i++) {
-					CXCellState cellState4= B.cellState(row + i, col + i);
-	
-					if (cellState4== CXCellState.FREE) {
-						emptyCount++;
-					} else if (cellState4== CXCellState.P1 && isFirstPlayer || cellState4== CXCellState.P2 && !isFirstPlayer  ) {
-						playerCount++;
-						opponentCount = 0;
+				if (cellState4== CXCellState.FREE) {
+					emptyCount++;
+				} else if (cellState4== CXCellState.P1 && isFirstPlayer || cellState4== CXCellState.P2 && !isFirstPlayer  ) {
+					playerCount++;
+					opponentCount = 0;
 
-					} else {
-						playerCount = 0;
-						opponentCount++;
-
-					}
+				} else {
+					playerCount = 0;
+					opponentCount++;
 				}
-	
+				
 				if (playerCount > 0) {
 					score += calculateLineScore(playerCount, emptyCount);
 				}
@@ -356,6 +352,8 @@ public class ALPlayer implements CXPlayer {
 				Collections.reverse(moves);
 
 				orderedMoves = moves.stream().mapToInt(Integer::intValue).toArray();
+
+				this.bestCol = orderedMoves[0];
 
 			} catch (TimeoutException e) {
 				return orderedMoves[0];

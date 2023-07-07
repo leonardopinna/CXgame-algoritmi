@@ -9,6 +9,9 @@ import java.util.Random;
 import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import connectx.CXCellState;
+import connectx.Leo.Tree;
+import connectx.Leo.Node;
+
 
 import java.sql.Time;
 import java.util.ArrayList;
@@ -31,6 +34,9 @@ public class Leo implements CXPlayer {
     private int rows;
 	private boolean isFirstPlayer;
 	private int bestCol; // tiene traccia della best col fino a questo momento.
+
+	// Parametri gametree
+	private boolean initialized;
 	
 
     /* Default empty constructor */
@@ -51,6 +57,9 @@ public class Leo implements CXPlayer {
         this.rows = M;
 		this.isFirstPlayer=first;
 		this.bestCol = rand.nextInt(N);
+
+		// Gametree parametri
+		this.initialized = false;
     }
 
     private void checktime() throws TimeoutException {
@@ -62,7 +71,27 @@ public class Leo implements CXPlayer {
     public int selectColumn(CXBoard B) {
         this.START = System.currentTimeMillis();
         
-        try {
+
+		// Inizializzo lo stato di gioco
+		
+		GameState gameState = new GameState(B, MAX_DEPTH);
+		Node<GameState> root = new Node<GameState>(gameState);
+		Tree<Node<GameState>> gameTree = new Tree(root);
+		this.initialized = true;
+		
+		// se il gioco è già inizializzato, siamo alla nostra seconda mossa.
+		
+
+
+		gameTree.getRoot();
+		for (int i = 0; i < B.N; i++){
+			B.markColumn(i);
+			root.addChild(new Node<GameState>(new GameState(B, MAX_DEPTH -1 )));
+			B.unmarkColumn();
+		}
+
+
+		try {
             int col = iterativeDeepening(B, MAX_DEPTH);
             return col;
         } catch (TimeoutException e) {
