@@ -1,4 +1,4 @@
-package connectx.ALPlayer;
+package connectx.Leo;
 import java.util.Comparator;
 import connectx.CXPlayer;
 import connectx.CXBoard;
@@ -17,7 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 
 
-public class ALPlayer implements CXPlayer {
+public class Leo implements CXPlayer {
     private Random rand;
     private CXGameState myWin;
     private CXGameState yourWin;
@@ -34,7 +34,7 @@ public class ALPlayer implements CXPlayer {
 	
 
     /* Default empty constructor */
-    public ALPlayer() {
+    public Leo() {
     }
 
     public void initPlayer(int M, int N, int K, boolean first, int timeout_in_secs) {
@@ -412,7 +412,7 @@ public class ALPlayer implements CXPlayer {
 	}
 
     public String playerName() {
-        return "ALPlayer";
+        return "Leo";
     }
 }
 

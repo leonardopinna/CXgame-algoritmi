@@ -1,0 +1,1 @@
+javac -cp ".." *.java */*java && java -cp ".." connectx.Leo.Leo 
