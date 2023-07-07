@@ -45,7 +45,7 @@ public class ALPlayer implements CXPlayer {
 
 
 		// Parametri aggiuntivi per il player
-        this.MAX_DEPTH = 4; 
+        this.MAX_DEPTH = 5; 
         this.columns = N;
         this.k = K;
         this.rows = M;
@@ -63,6 +63,9 @@ public class ALPlayer implements CXPlayer {
         this.START = System.currentTimeMillis();
         
         try {
+			if (B.getMarkedCells().length < 2) {
+				return (B.N) / 2;
+			}
             int col = iterativeDeepening(B, MAX_DEPTH);
             return col;
         } catch (TimeoutException e) {
@@ -84,243 +87,491 @@ public class ALPlayer implements CXPlayer {
     }
 		
 
-	private int evaluatePosition(CXBoard B) {
+	private int evaluatePosition(CXBoard B) throws TimeoutException {
+
+		int p1Score = 0;
+		int p2Score = 0;
+
+
+		// Versione migliorata di valutazione prendendo le celle.
+		for (CXCell C : B.getMarkedCells()) {
+			checktime();
+			int x = C.i;
+			int y = C.j;
+			int cellPoints = 0;
+			int counter = 0;
+
+			// Valutazione della colonna (verso l'alto)
+			for (int index =  - getK() + 1 ; index < getK(); index++) {
+				
+				// Arrivo oltre il limite superiore della matrice. Interrompo la ricerca per colonna.
+				if ( x - index  <= -1) {
+					// Zero punti perchè non posso fare molto.
+					counter = 0;
+					break; 
+				}
+
+				// Se non sono al di sotto della matrice, considero le pedine entro il range di valutazione.
+				if (!(x - index >= getRows())) {
+					if (B.cellState(x - index, y) == CXCellState.FREE) {
+						// La cella sopra è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x - index, y) == B.cellState(x,y) ) {
+						// La cella sopra è uguale a questa cella: ottengo molti punti.
+						counter += 30;
+					} else {
+						// La cella sopra non è uguale alla cella attualmente valutata; la cella è bloccata verso l'alto.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+						break;
+					}
+				}
+			}
+
+			// Salvo i punti ottenuti dalla cella nella precedente valutazione. 
+			// Riazzero il conteggio per la successiva valutazione.
+			cellPoints += counter;
+			counter = 0;
+
+			// Valutazione della riga (sx verso dx)
+			for (int index =  - getK() + 1 ; index < getK(); index++) {
+				
+				// Arrivo oltre il limite destro della matrice. Interrompo la ricerca.
+				if ( y + index  >= getColumns()) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non sono sinistra della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!(y + index < 0) && (index != 0)) {
+					if (B.cellState(x, y + index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x, y + index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+
+
+			// Valutazione della riga (dx verso sx)
+			for (int index = - getK() + 1; index < getK(); index++) {
+				
+				// Arrivo oltre il limite sinistro della matrice. Interrompo la ricerca.
+				if ( y - index  <= -1) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non parto oltre a destra della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!(y - index >= getColumns())) {
+					if (B.cellState(x, y - index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x, y - index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+
+			// Valutazione della diagonale (alto-sx verso basso-dx)
+			for (int index = - getK() + 1; index < getK(); index ++ ) {
+				
+				// Arrivo oltre il limite destro o fondo della matrice. Interrompo la ricerca.
+				if ( y + index  >= getColumns() || x + index >= getRows()) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non parto oltre la sinistra o l'alto della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!((y + index < 0) || ( x + index < 0))) {
+					if (B.cellState(x + index, y + index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x + index, y + index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+
+			// Valutazione della diagonale (alto-dx verso basso-sx)
+			for (int index = - getK() + 1; index < getK(); index ++ ) {
+				
+				// Arrivo oltre il limite sinistro o inferiore della matrice. Interrompo la ricerca.
+				if ( y - index  < 0 || x + index >= getRows()) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non parto oltre la destra o sopra della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!((y - index >= getColumns()) || ( x + index < 0))) {
+					if (B.cellState(x + index, y - index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x + index, y - index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+
+			// Valutazione della diagonale (basso-sx verso alto-dx)
+			for (int index = - getK() + 1; index < getK(); index ++ ) {
+				
+				// Arrivo oltre il limite superiore o destro della matrice. Interrompo la ricerca.
+				if ( y + index  >= getColumns() || x - index < 0 ) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non parto oltre la sinistra o il basso della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!((y + index < 0) || ( x - index >= getRows()))) {
+					if (B.cellState(x - index, y + index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x - index, y + index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index > 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+
+			// Valutazione della diagonale (basso-dx verso alto-sx)
+			for (int index = - getK() + 1; index < getK(); index ++ ) {
+				
+				// Arrivo oltre il limite sinistro o superiore della matrice. Interrompo la ricerca.
+				if ( y - index  < 0 || x - index < 0) {
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
+					break; 
+				}
+
+				// Se non parto da oltre la destra o il basso della matrice, oppure nella cella stessa, procedo alla valutazione.
+				if (!((y - index >= getColumns()) || ( x - index >= getRows()))) {
+					if (B.cellState(x - index, y - index) == CXCellState.FREE) {
+						// La cella è libera: vuol dire che potenzialmente posso continuare la streak
+						counter += 5;
+					} else if (B.cellState(x - index, y - index) == B.cellState(x,y) ) {
+						// La cella è dello stesso giocatore della cella valutata: ottengo molti punti.
+						// Ottengo meno punti della colonna perchè valuto due direzioni.
+						counter += 20;
+					} else {
+						// La cella trovata non è uguale alla cella attualmente valutata; se la cella è prima della cella
+						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
+						// allora è bloccata verso destra e interrompo il ciclo dopo aver azzerato il punteggio.
+						// Zero punti.
+						counter = 0;
+						if (index < 0) {break;}
+					}
+				}
+			}
+
+			cellPoints += counter;
+			counter = 0;
+			
+			if (C.state == CXCellState.P1) {p1Score += cellPoints;} else {p2Score += cellPoints;}
+		}
+
+		if (this.isFirstPlayer) { return p1Score - p2Score;} else { return p2Score - p1Score;}
 		
-		// Score: punteggio della posizione
-		int score = 0;
+		// Versione vecchia di valutazione
+
+
+
+
+		// // Score: punteggio della posizione
+		// int score = 0;
 	
-		// Valutazione delle righe
-		for (int row = 0; row < getRows(); row++) {
+		// // Valutazione delle righe
+		// for (int row = 0; row < getRows(); row++) {
 
-			// Per ogni riga, inizializzo i parametri che mi servono
-			CXCellState firstPlayer = CXCellState.FREE;
-			int emptyCount = 0;
-			int countP1 = 0;
-			int countP2 = 0;
-			int freeHole1 = 0;
-			int freeHole2 = 0;
+		// 	// Per ogni riga, inizializzo i parametri che mi servono
+		// 	CXCellState firstPlayer = CXCellState.FREE;
+		// 	int emptyCount = 0;
+		// 	int countP1 = 0;
+		// 	int countP2 = 0;
+		// 	int freeHole1 = 0;
+		// 	int freeHole2 = 0;
 
-			// Per ogni colonna, parto da sx e vado verso dx fino a quando non incontro una cella occupata.
-			// Quando incontro una cella, l'unico giocatore che può vincere è il giocatore
-			// che ha l'estremità libera.
-			// In caso di cella libera tra due pedine dello stesso giocatore, la somma continua.
+		// 	// Per ogni colonna, parto da sx e vado verso dx fino a quando non incontro una cella occupata.
+		// 	// Quando incontro una cella, l'unico giocatore che può vincere è il giocatore
+		// 	// che ha l'estremità libera.
+		// 	// In caso di cella libera tra due pedine dello stesso giocatore, la somma continua.
 
-			for (int col = 0; col < getColumns(); col++) {
+		// 	for (int col = 0; col < getColumns(); col++) {
 				
-				CXCellState cellState = B.cellState(row, col);
+		// 		CXCellState cellState = B.cellState(row, col);
 
-				// Se non ho ancora trovato una cella occupata, proseguo
-				if (cellState == CXCellState.FREE && firstPlayer == CXCellState.FREE) {
-					emptyCount++;
-					countP1 = 0;
-					countP2 = 0;
+		// 		// Se non ho ancora trovato una cella occupata, proseguo
+		// 		if (cellState == CXCellState.FREE && firstPlayer == CXCellState.FREE) {
+		// 			emptyCount++;
+		// 			countP1 = 0;
+		// 			countP2 = 0;
 					
-				} else if (cellState != CXCellState.FREE && firstPlayer == CXCellState.FREE) {
-					// Ho trovato la prima cella non occupata nella riga.
-					// Assegno a first il player trovato.
-					firstPlayer = cellState;
-					countP1 = 0;
-					countP2 = 0;
-					if (firstPlayer == CXCellState.P1) {
-						countP1++;
-					} else { 
-						countP2++;
-					}
+		// 		} else if (cellState != CXCellState.FREE && firstPlayer == CXCellState.FREE) {
+		// 			// Ho trovato la prima cella non occupata nella riga.
+		// 			// Assegno a first il player trovato.
+		// 			firstPlayer = cellState;
+		// 			countP1 = 0;
+		// 			countP2 = 0;
+		// 			if (firstPlayer == CXCellState.P1) {
+		// 				countP1++;
+		// 			} else { 
+		// 				countP2++;
+		// 			}
 				
-				} else if (cellState != CXCellState.FREE && firstPlayer == cellState) {
-					// Ho trovato una cella occupata consecutiva ad una occupata: è dello stesso giocatore, aumenta il count.
-					if (firstPlayer == CXCellState.P1) {
-						countP1++;
-					} else { 
-						countP2++;
-					}
-					// if (countP1 == getK()) {
+		// 		} else if (cellState != CXCellState.FREE && firstPlayer == cellState) {
+		// 			// Ho trovato una cella occupata consecutiva ad una occupata: è dello stesso giocatore, aumenta il count.
+		// 			if (firstPlayer == CXCellState.P1) {
+		// 				countP1++;
+		// 			} else { 
+		// 				countP2++;
+		// 			}
+		// 			// if (countP1 == getK()) {
 
-					// }
+		// 			// }
 
-				} else if (cellState != CXCellState.FREE && firstPlayer != cellState) {
-					// Ho trovato una cella occupata consecutiva ad una occupata: è dell'altro giocatore, azzero il player e inizio a contare quello dell'altro giocatore.
-					if (cellState == CXCellState.P1) {
-						countP1 = 1;
-						// Salva il punteggio parziale ottenuto da p2 nell'array
-						if (isFirstPlayer) {
-								score -= calculateLineScore(countP2, 0);
-							} else {
-								score += calculateLineScore(countP2, 0);
-							}
-						countP2 = 0;
-					} else { 
-						countP2 = 1;
-						// Salva il punteggio parziale ottenuto da p1 nell'array
-						if (isFirstPlayer) {
-							score += calculateLineScore(countP1, 0);
-						} else {
-							score -= calculateLineScore(countP1, 0);
-						}
-					}
-					firstPlayer = cellState;
+		// 		} else if (cellState != CXCellState.FREE && firstPlayer != cellState) {
+		// 			// Ho trovato una cella occupata consecutiva ad una occupata: è dell'altro giocatore, azzero il player e inizio a contare quello dell'altro giocatore.
+		// 			if (cellState == CXCellState.P1) {
+		// 				countP1 = 1;
+		// 				// Salva il punteggio parziale ottenuto da p2 nell'array
+		// 				if (isFirstPlayer) {
+		// 						score -= calculateLineScore(countP2, 0);
+		// 					} else {
+		// 						score += calculateLineScore(countP2, 0);
+		// 					}
+		// 				countP2 = 0;
+		// 			} else { 
+		// 				countP2 = 1;
+		// 				// Salva il punteggio parziale ottenuto da p1 nell'array
+		// 				if (isFirstPlayer) {
+		// 					score += calculateLineScore(countP1, 0);
+		// 				} else {
+		// 					score -= calculateLineScore(countP1, 0);
+		// 				}
+		// 			}
+		// 			firstPlayer = cellState;
 
 
-				} else if (cellState == CXCellState.FREE && firstPlayer != CXCellState.FREE) {
-					// Trovo una cella libera dopo averne trovate di occupate.
-					// La cella è la prima libera, ma ho già trovato nella riga una cella occupata.
-					// Valuto quindi il "buco" lasciato tra le celle. Se supera la lunghezza massima, 
-					// azzero il count per il giocatore e metto first = FREE.
-					emptyCount++;
+		// 		} else if (cellState == CXCellState.FREE && firstPlayer != CXCellState.FREE) {
+		// 			// Trovo una cella libera dopo averne trovate di occupate.
+		// 			// La cella è la prima libera, ma ho già trovato nella riga una cella occupata.
+		// 			// Valuto quindi il "buco" lasciato tra le celle. Se supera la lunghezza massima, 
+		// 			// azzero il count per il giocatore e metto first = FREE.
+		// 			emptyCount++;
 
-					if (firstPlayer == CXCellState.P1) { 
+		// 			if (firstPlayer == CXCellState.P1) { 
 						
-						if (freeHole1 + countP1 == getK()) {
-							if (isFirstPlayer) {
-								score += calculateLineScore(countP1, 0);
-							} else {
-								score -= calculateLineScore(countP1, 0);
-							}
-							countP1 = 0;
-							countP2 = 0;
-							freeHole1 = 0;
-							freeHole2 = 0;
-							firstPlayer = CXCellState.FREE;
-						} else {
-							freeHole1++;
-						}
+		// 				if (freeHole1 + countP1 == getK()) {
+		// 					if (isFirstPlayer) {
+		// 						score += calculateLineScore(countP1, 0);
+		// 					} else {
+		// 						score -= calculateLineScore(countP1, 0);
+		// 					}
+		// 					countP1 = 0;
+		// 					countP2 = 0;
+		// 					freeHole1 = 0;
+		// 					freeHole2 = 0;
+		// 					firstPlayer = CXCellState.FREE;
+		// 				} else {
+		// 					freeHole1++;
+		// 				}
 
-					} else { 
-						if (freeHole2 + countP2 == getK()) {
-							if (isFirstPlayer) {
-								score -= calculateLineScore(countP2, 0);
-							} else {
-								score += calculateLineScore(countP2, 0);
-							}
-							countP1 = 0;
-							countP2 = 0;
-							freeHole1 = 0;
-							freeHole2 = 0;
-							firstPlayer = CXCellState.FREE;
+		// 			} else { 
+		// 				if (freeHole2 + countP2 == getK()) {
+		// 					if (isFirstPlayer) {
+		// 						score -= calculateLineScore(countP2, 0);
+		// 					} else {
+		// 						score += calculateLineScore(countP2, 0);
+		// 					}
+		// 					countP1 = 0;
+		// 					countP2 = 0;
+		// 					freeHole1 = 0;
+		// 					freeHole2 = 0;
+		// 					firstPlayer = CXCellState.FREE;
 
-						} else {
-							freeHole2++;
-						}
-					}
-				} 
-			}
-		}
+		// 				} else {
+		// 					freeHole2++;
+		// 				}
+		// 			}
+		// 		} 
+		// 	}
+		// }
 	
-		// Valutazione delle colonne
-		for (int col = 0; col < getColumns(); col++) {
-			// Se la colonna è piena, non valuto la colonna (non è possibile ottenere punti extra da quella colonna)
-			if (!B.fullColumn(col)) {
+		// // Valutazione delle colonne
+		// for (int col = 0; col < getColumns(); col++) {
+		// 	// Se la colonna è piena, non valuto la colonna (non è possibile ottenere punti extra da quella colonna)
+		// 	if (!B.fullColumn(col)) {
 
-				// Per ogni colonna, inizializzo i parametri che mi servono
-				CXCellState firstPlayer = CXCellState.FREE;
-				int emptyCount = 0;
-				int countP1 = 0;
-				int countP2 = 0;
+		// 		// Per ogni colonna, inizializzo i parametri che mi servono
+		// 		CXCellState firstPlayer = CXCellState.FREE;
+		// 		int emptyCount = 0;
+		// 		int countP1 = 0;
+		// 		int countP2 = 0;
 
-				// Per ogni riga, parto dall'alto e scendo fino a quando non incontro una cella.
-				// Quando incontro una cella, l'unico giocatore che può vincere è il giocatore
-				// nella prima cella libera partendo dall'alto
-				for (int row = 0; row < getRows(); row++) {
+		// 		// Per ogni riga, parto dall'alto e scendo fino a quando non incontro una cella.
+		// 		// Quando incontro una cella, l'unico giocatore che può vincere è il giocatore
+		// 		// nella prima cella libera partendo dall'alto
+		// 		for (int row = 0; row < getRows(); row++) {
 
 					
-					CXCellState cellState = B.cellState(row, col);
+		// 			CXCellState cellState = B.cellState(row, col);
 
-					// Se non ho ancora trovato una cella occupata, proseguo
-					if (cellState == CXCellState.FREE) {
-						emptyCount++;
-					} else {
-						// Appena trovo la prima cella, assegno firstplayer al giocatore trovato
-						if (firstPlayer == CXCellState.FREE) {
-							firstPlayer = cellState;
-						}
-						// Se la cella è uguale a quella del primo giocatore, continuo a contare
-						if (firstPlayer == cellState){
-							// In funzione del giocatore assegno il punteggio
-							if (firstPlayer == CXCellState.P1) {
-								countP1++;
-							} else { 
-								countP2++;
-							}
+		// 			// Se non ho ancora trovato una cella occupata, proseguo
+		// 			if (cellState == CXCellState.FREE) {
+		// 				emptyCount++;
+		// 			} else {
+		// 				// Appena trovo la prima cella, assegno firstplayer al giocatore trovato
+		// 				if (firstPlayer == CXCellState.FREE) {
+		// 					firstPlayer = cellState;
+		// 				}
+		// 				// Se la cella è uguale a quella del primo giocatore, continuo a contare
+		// 				if (firstPlayer == cellState){
+		// 					// In funzione del giocatore assegno il punteggio
+		// 					if (firstPlayer == CXCellState.P1) {
+		// 						countP1++;
+		// 					} else { 
+		// 						countP2++;
+		// 					}
 						
-						} else {
-							// Se la cella non è dello stesso giocatore incontrato per primo, 
-							// calcolo il punteggio e interrompo la valutazione della riga
-							if (isFirstPlayer)
-							{score += calculateLineScore(countP1, emptyCount);
-							score -= calculateLineScore(countP2, emptyCount);}
-							else {
-								score += calculateLineScore(countP2, emptyCount);
-							score -= calculateLineScore(countP1, emptyCount);
-							}
-							break;
-						}
+		// 				} else {
+		// 					// Se la cella non è dello stesso giocatore incontrato per primo, 
+		// 					// calcolo il punteggio e interrompo la valutazione della riga
+		// 					if (isFirstPlayer)
+		// 					{score += calculateLineScore(countP1, emptyCount);
+		// 					score -= calculateLineScore(countP2, emptyCount);}
+		// 					else {
+		// 						score += calculateLineScore(countP2, emptyCount);
+		// 					score -= calculateLineScore(countP1, emptyCount);
+		// 					}
+		// 					break;
+		// 				}
 
-					}
+		// 			}
 					
-				}
-			}
-		}
+		// 		}
+		// 	}
+		// }
 	
-		// Valutazione delle diagonali ascendenti
-		for (int row = getK() - 1; row < getRows(); row++) {
-			// Partendo dalla prima diagonale disponibile, risale calcolando 
-			for (int col = 0; col < Math.min(row, getColumns()); col++) {
-				int emptyCount = 0;
-				int playerCount = 0;
-				int opponentCount = 0;
+		// // Valutazione delle diagonali ascendenti
+		// for (int row = getK() - 1; row < getRows(); row++) {
+		// 	// Partendo dalla prima diagonale disponibile, risale calcolando 
+		// 	for (int col = 0; col < Math.min(row, getColumns()); col++) {
+		// 		int emptyCount = 0;
+		// 		int playerCount = 0;
+		// 		int opponentCount = 0;
 
-					CXCellState cellState3= B.cellState(row - col, col);
+		// 			CXCellState cellState3= B.cellState(row - col, col);
 	
-					if (cellState3== CXCellState.FREE) {
-						emptyCount++;
-					} else if (cellState3== CXCellState.P1 && isFirstPlayer || cellState3== CXCellState.P2 && !isFirstPlayer) {
-						playerCount++;
-						opponentCount = 0;
-					} else {
-						playerCount = 0;
-						opponentCount++;
-					}
+		// 			if (cellState3== CXCellState.FREE) {
+		// 				emptyCount++;
+		// 			} else if (cellState3== CXCellState.P1 && isFirstPlayer || cellState3== CXCellState.P2 && !isFirstPlayer) {
+		// 				playerCount++;
+		// 				opponentCount = 0;
+		// 			} else {
+		// 				playerCount = 0;
+		// 				opponentCount++;
+		// 			}
 
 				
-				if (emptyCount > 0 && playerCount > 0) {
-					score += calculateLineScore(playerCount, emptyCount);
-				}
-				if (emptyCount > 0 && opponentCount > 0) {
-					score -= calculateLineScore(opponentCount, emptyCount);
-				}
-			}
-		}
+		// 		if (emptyCount > 0 && playerCount > 0) {
+		// 			score += calculateLineScore(playerCount, emptyCount);
+		// 		}
+		// 		if (emptyCount > 0 && opponentCount > 0) {
+		// 			score -= calculateLineScore(opponentCount, emptyCount);
+		// 		}
+		// 	}
+		// }
 	
-		// Valutazione delle diagonali discendenti
-		for (int row = 0; row < getRows() - getK(); row++) {
-			for (int col = 0; col < Math.min(getRows() - getK() - row, getColumns()); col++) {
-				int emptyCount = 0;
-				int playerCount = 0;
-				int opponentCount = 0;
+		// // Valutazione delle diagonali discendenti
+		// for (int row = 0; row < getRows() - getK(); row++) {
+		// 	for (int col = 0; col < Math.min(getRows() - getK() - row, getColumns()); col++) {
+		// 		int emptyCount = 0;
+		// 		int playerCount = 0;
+		// 		int opponentCount = 0;
 
-				CXCellState cellState4= B.cellState(row + col, col);
+		// 		CXCellState cellState4= B.cellState(row + col, col);
 
-				if (cellState4== CXCellState.FREE) {
-					emptyCount++;
-				} else if (cellState4== CXCellState.P1 && isFirstPlayer || cellState4== CXCellState.P2 && !isFirstPlayer  ) {
-					playerCount++;
-					opponentCount = 0;
+		// 		if (cellState4== CXCellState.FREE) {
+		// 			emptyCount++;
+		// 		} else if (cellState4== CXCellState.P1 && isFirstPlayer || cellState4== CXCellState.P2 && !isFirstPlayer  ) {
+		// 			playerCount++;
+		// 			opponentCount = 0;
 
-				} else {
-					playerCount = 0;
-					opponentCount++;
-				}
+		// 		} else {
+		// 			playerCount = 0;
+		// 			opponentCount++;
+		// 		}
 				
-				if (playerCount > 0) {
-					score += calculateLineScore(playerCount, emptyCount);
-				}
-				if (opponentCount > 0) {
-					score -= calculateLineScore(opponentCount, emptyCount);
-				}
-			}
-		}
+		// 		if (playerCount > 0) {
+		// 			score += calculateLineScore(playerCount, emptyCount);
+		// 		}
+		// 		if (opponentCount > 0) {
+		// 			score -= calculateLineScore(opponentCount, emptyCount);
+		// 		}
+		// 	}
+		// }
 	
-		return score;
+		// return score;
 	}
 
 	private int calculateLineScore(int count, int emptyCount) {
@@ -332,7 +583,7 @@ public class ALPlayer implements CXPlayer {
 		int[] orderedMoves = new int[B.N];
 		Integer[] Q = B.getAvailableColumns();
 		int bestCol = Q[rand.nextInt(Q.length)];
-		for (int d = 1; d <= depth; d++) {
+		// for (int d = 1; d <= depth; d++) {
 			try {
 				checktime();
 	
@@ -358,7 +609,7 @@ public class ALPlayer implements CXPlayer {
 			} catch (TimeoutException e) {
 				return orderedMoves[0];
 			}
-		}
+		// }
 		return orderedMoves[0];
 
 	}
