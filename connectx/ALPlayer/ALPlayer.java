@@ -393,33 +393,68 @@ public class ALPlayer implements CXPlayer {
 
 	public int iterativeDeepening(CXBoard B, int depth) throws TimeoutException {
 
-		int[] scores = new int[B.N];
+		
+		
+
+		// Io sono il giocatore che massimizza
 		int bestScore = Integer.MIN_VALUE;
 		
 		Integer[] Q = B.getAvailableColumns();
 		int nextMove = Q[rand.nextInt(Q.length)];
+		int[] scores = new int[Q.length];
 
 		try {
 			for (int d = 1; d <= depth; d++) {
+				// Ci sono due implmenetazioni dell'array: array classico e array-lista
+				// (preferibile) che ordina già le mosse dalla migliore alla peggiore.
+				// Commentare una delle due parti perchè fanno la stessa cosa.
 
-					checktime();
-					for (int i = 0; i < Q.length; i++) {
-						B.markColumn(Q[i]);
-						scores[i] = evaluateMove(B, false, d, Integer.MIN_VALUE, Integer.MAX_VALUE);
+				checktime();
+
+				// INIZIO IMPLEMENTAZIONE PSEUDO-ARRAY ORDINATO AUTOMATICAMENTE
+				int dd = d;
+				List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
+				moves.sort(Comparator.comparingInt(col -> {
+					B.markColumn(col);
+					int score;
+
+					try {
+						score = evaluateMove(B, false, dd - 1, Integer.MIN_VALUE, Integer.MAX_VALUE);
 						B.unmarkColumn();
+				
+					} catch (Exception e) {
+						score = -1000;
 					}
+					return score;
+				}));
+				Collections.reverse(moves);
 
-					// Se metto False quando è il primo giocatore, massacro il L1. Anche quando è il secondo giocatore.
+				this.currentBestMove = moves.get(0);
 
-					for (int i = 0; i < Q.length; i++) {
-						if (scores[i] > bestScore) {
-							nextMove = Q[i];
-							bestScore = scores[i];
-						}
-					}
+				// FINE IMPLEMENTAZIONE PSEUDO-ARRAY ORDINATO AUTOMATICAMENTE
 
-					// System.out.println("Fine del livello " + d + " dopo " + (System.currentTimeMillis() - this.START));
-					this.currentBestMove = nextMove;
+
+				// INIZIO IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
+
+				// checktime();
+				// for (int i = 0; i < Q.length; i++) {
+				// 	B.markColumn(Q[i]);
+				// 	// Metto falso perchè avendo giocato la mia mossa simulata, è il turno dell'avversario.
+				// 	scores[i] = evaluateMove(B, false, d, Integer.MIN_VALUE, Integer.MAX_VALUE);
+				// 	B.unmarkColumn();
+				// }
+
+				// for (int i = 0; i < Q.length; i++) {
+				// 	if (scores[i] > bestScore) {
+				// 		nextMove = Q[i];
+				// 		bestScore = scores[i];
+				// 	}
+				// }
+
+				// System.out.println("Fine del livello " + d + " dopo " + (System.currentTimeMillis() - this.START));
+				// this.currentBestMove = nextMove;
+
+				// FINE IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
 					
 			}
 

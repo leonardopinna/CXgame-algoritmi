@@ -427,6 +427,7 @@ public class MonteCarlo implements CXPlayer {
 
 		// Calculate the score based on the terminal state
 		int winPoints = 50;
+		
 		if (playoutBoard.gameState() != CXGameState.OPEN) {
 			if (playoutBoard.gameState() == CXGameState.WINP1) {
 				if (!this.isFirst) return -winPoints; else return winPoints;
