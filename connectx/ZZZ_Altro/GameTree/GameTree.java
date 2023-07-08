@@ -1,4 +1,6 @@
-package connectx.Leo;
+// FILE TO BE IGNORED FOR NOW 
+
+package connectx.ZZZ_Altro.GameTree;
 import java.util.Comparator;
 import connectx.CXPlayer;
 import connectx.CXBoard;
@@ -15,17 +17,41 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class GameState {
+public class GameTree {
     private CXBoard board;
     private int eval;
-    private GameState[] children;
+    private boolean evalued;
+    private GameTree[] children;
     private int depth;
 
-    public GameState(CXBoard B, int DEPTH) {
+    public GameTree(CXBoard B, int DEPTH) {
         this.board = B;
-        this.eval = depth == 0 ? evaluatePosition() : 0;
-        this.children = new GameState[B.N];
+        this.evalued = false;
+        this.eval = evaluatePosition();
+        this.children = new GameTree[B.N];
         this.depth = DEPTH;
+        if (DEPTH > 0) {
+            for (int i = 0; i < this.children.length; i++) {
+                if (this.board.gameState() == CXGameState.OPEN) {
+                    if (B.fullColumn(i)) {
+                        // Mossa non possibile: figlio messo null
+                        this.children[i] = null;
+                    } else if (this.children[i] == null && !B.fullColumn(i)) {
+                        // Mossa ancora non valutata e colonna disponibile: creo una nuova valutazione
+                        CXBoard newB = this.board.copy();
+                        newB.markColumn(i);
+                        this.children[i] = new GameTree(newB, this.depth - 1);
+                        getGameStateAtPosition(this.children[i], this.depth - 1, new int[]{i});
+                    } else {
+                        // Mossa già valutata e da aggiornare come profondità
+                        this.children[i].updateTree();
+                    }
+                } else {
+                    // Stato di gioco WIN o DRAW: non c'è il sottoramo
+                    this.children[i] = null;
+                }
+            }
+        }
     }
 
 
@@ -56,7 +82,7 @@ public class GameState {
     }
 
 
-    public void printEvals(GameState G, int d, int col) {
+    public void printEvals(GameTree G, int d, int col) {
         if (G != null)  {
             System.out.println(eval + " per la mossa " + col + " a profondità " + d);
             for (int i = 0; i < G.children.length; i++) {
@@ -65,9 +91,9 @@ public class GameState {
         } 
     }
 
-    public void getGameStateAtPosition(GameState G, int d, int[] arr) {
+    public void getGameStateAtPosition(GameTree G, int d, int[] arr) {
         int i = 0;
-        GameState newG = new GameState(G.board, d);
+        GameTree newG = new GameTree(G.board, d);
         while (G.children[arr[i]] != null && i < arr.length - 1) {
             newG = G.children[arr[i]];
             i = i + 1;
@@ -88,7 +114,7 @@ public class GameState {
         return this.eval;
     }
 
-    public GameState[] getChildren() {
+    public GameTree[] getChildren() {
         return this.children;
     }
 
@@ -100,7 +126,7 @@ public class GameState {
 
     public void setChild(CXBoard B, int col, int depth) {
         if (!B.fullColumn(col)) {
-            this.children[col] = new GameState(B, depth);
+            this.children[col] = new GameTree(B, depth);
         } else {
             this.children[col] = null;
         }

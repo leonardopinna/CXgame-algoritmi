@@ -1,7 +1,7 @@
 
-package connectx.Test;
+package connectx.ZZZ_Altro.Test;
 import connectx.CXBoard;
-import connectx.ALPlayer.GameTree;
+import connectx.ZZZ_Altro.GameTree.GameTree;
 
 public class Test {
     public static void main(String[] args) {

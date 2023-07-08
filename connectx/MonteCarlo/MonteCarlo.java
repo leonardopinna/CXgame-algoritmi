@@ -1,22 +1,13 @@
-package connectx.ALPlayer;
-import java.util.Comparator;
+package connectx.MonteCarlo;
 import connectx.CXPlayer;
 import connectx.CXBoard;
 import connectx.CXGameState;
 import connectx.CXCell;
-import java.util.TreeSet;
 import java.util.Random;
-import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import connectx.CXCellState;
 
-import java.sql.Time;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
-public class ALPlayer implements CXPlayer {
+public class MonteCarlo implements CXPlayer {
     private Random rand;
     private CXGameState myWin;
     private CXGameState yourWin;
@@ -32,7 +23,7 @@ public class ALPlayer implements CXPlayer {
 	private int currentBestMove; // tiene traccia della best col fino a questo momento.
 	
     /* Default empty constructor */
-    public ALPlayer() {
+    public MonteCarlo() {
     }
 
     public void initPlayer(int M, int N, int K, boolean first, int timeout_in_secs) {
@@ -41,8 +32,9 @@ public class ALPlayer implements CXPlayer {
         this.yourWin = first ? CXGameState.WINP2 : CXGameState.WINP1;
         this.TIMEOUT = timeout_in_secs;
 
+
 		// Parametri aggiuntivi per il player
-        this.MAX_DEPTH 	= 6; 
+        this.MAX_DEPTH 	= 50; 
         this.columns 	= N;
         this.k 			= K;
         this.rows 		= M;
@@ -55,21 +47,6 @@ public class ALPlayer implements CXPlayer {
             throw new TimeoutException();
     }
 
-	private int singleMoveBlock(CXBoard B) throws TimeoutException {
-		Integer[] Q = B.getAvailableColumns(); 
-
-		for(int i : Q) {
-			checktime();
-			B.markColumn(i);
-
-			if (B.gameState() == yourWin) return (i);
-
-			B.unmarkColumn();
-		}
-
-		return -1;
-	}
-
    //metodo principale di selezione di una colonna, da getbestmove partono gli altri metodi
     public int selectColumn(CXBoard B) {
         this.START = System.currentTimeMillis();
@@ -77,13 +54,13 @@ public class ALPlayer implements CXPlayer {
 		this.currentBestMove = Q[rand.nextInt(Q.length)];
         
         try {
-
+			// La prima mossa viene giocata al centro
 			if (B.getMarkedCells().length < 2) {
 				return (B.N) / 2;
 			}
-			if (singleMoveBlock(B) >= 0) return singleMoveBlock(B);
 
-            int col = iterativeDeepening(B, MAX_DEPTH);
+			// Algoritmo di tipo Monte Carlo per ricerca della migliore mossa
+            int col = monteCarloSearch(B, MAX_DEPTH);
             return col;
 
         } catch (TimeoutException e) {
@@ -162,7 +139,6 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
 					break; 
 				}
 
@@ -195,7 +171,6 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite sinistro della matrice. Interrompo la ricerca.
 				if ( y - index  <= -1) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
 					break; 
 				}
 
@@ -228,8 +203,6 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite destro o fondo della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x + index >= getRows()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
-
 					break; 
 				}
 
@@ -261,9 +234,7 @@ public class ALPlayer implements CXPlayer {
 				
 				// Arrivo oltre il limite sinistro o inferiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x + index >= getRows()) {
-					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.					
-					counter = 0;
-
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
 					break; 
 				}
 
@@ -295,9 +266,7 @@ public class ALPlayer implements CXPlayer {
 				
 				// Arrivo oltre il limite superiore o destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x - index < 0 ) {
-					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.				
-					counter = 0;
-
+					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
 					break; 
 				}
 
@@ -330,8 +299,6 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite sinistro o superiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x - index < 0) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
-					
 					break; 
 				}
 
@@ -372,64 +339,107 @@ public class ALPlayer implements CXPlayer {
 		}
 	}
 
-	// Ottengo un punteggio per ogni mossa, ordino le mosse in ordine di punteggio, e ritorno la mossa più efficace.
-					// List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
-					// moves.sort(Comparator.comparingInt(col -> {
-					// 	CXBoard newB = B.copy();
-					// 	newB.markColumn(col);
-					// 	int score;
-					// 	try {
-					// 		score = evaluateMove(newB, col, false, depth, Integer.MIN_VALUE, Integer.MAX_VALUE);
-					// 	} catch (TimeoutException e) {
-					// 		score = -1000;
-					// 	}
-					// 	return score;
-					// }));
-					// Collections.reverse(moves);
-
-					// orderedMoves = moves.stream().mapToInt(Integer::intValue).toArray();
-
-					// this.bestCol = orderedMoves[0];
-
-	public int iterativeDeepening(CXBoard B, int depth) throws TimeoutException {
-
+	
+	public int monteCarloSearch(CXBoard B, int depth) throws TimeoutException {
+		// Inizializzo i parametri: mosse possibili e punteggio.
 		int[] scores = new int[B.N];
 		int bestScore = Integer.MIN_VALUE;
-		
 		Integer[] Q = B.getAvailableColumns();
 		int nextMove = Q[rand.nextInt(Q.length)];
 
 		try {
-			for (int d = 1; d <= depth; d++) {
+				checktime();
 
-					checktime();
-					for (int i = 0; i < Q.length; i++) {
-						B.markColumn(Q[i]);
-						scores[i] = evaluateMove(B, false, d, Integer.MIN_VALUE, Integer.MAX_VALUE);
-						B.unmarkColumn();
+				// Per ogni mossa possibile, lancio l'algoritmo Monte Carlo di simulazione
+				for (int i = 0; i < Q.length; i++) {
+					B.markColumn(Q[i]);
+					scores[i] = simulateMonteCarlo(B, false, depth); 
+					B.unmarkColumn();
+				}
+
+				// Trovo la mossa migliore in base al punteggio calcolato
+				for (int i = 0; i < Q.length; i++) {
+					if (scores[i] > bestScore) {
+						nextMove = Q[i];
+						bestScore = scores[i];
 					}
+				}
 
-					// Se metto False quando è il primo giocatore, massacro il L1. Anche quando è il secondo giocatore.
-
-					for (int i = 0; i < Q.length; i++) {
-						if (scores[i] > bestScore) {
-							nextMove = Q[i];
-							bestScore = scores[i];
-						}
-					}
-
-					// System.out.println("Fine del livello " + d + " dopo " + (System.currentTimeMillis() - this.START));
-					this.currentBestMove = nextMove;
-					
-			}
+				this.currentBestMove = nextMove;
 
 		} catch (TimeoutException e) {
-			return 0; //orderedMoves[0];
+			// Se va in timeout, ritorna una mossa casuale
+			return this.currentBestMove;
 		}
 
 		return this.currentBestMove;
-		// return nextMove; //orderedMoves[0];
+	}	
 
+	// Simula un numero elevato di partite facendo mosse casuali e ritorna il punteggio complessivo
+	private int simulateMonteCarlo(CXBoard B, boolean isFirst, int depth)  throws TimeoutException{
+
+		// Parametro: numero di simulazioni per partita. Più è alto, meglio è.
+		int simulations = 2000; // Number of Monte Carlo simulations to perform
+
+		// Inizializzo
+		int totalScore = 0;
+
+		for (int i = 0; i < simulations; i++) {
+			// Perform a random playout from the current game state
+			int score = performRandomPlayout(B, isFirst, depth);
+			totalScore += score;
+		}
+
+		// Return the average score of the Monte Carlo simulations
+		return totalScore / simulations;
+	}
+
+	private int performRandomPlayout(CXBoard B, boolean isFirst, int depth) throws TimeoutException {
+		// Perform a random playout from the current game state until reaching the desired depth or a terminal state
+		// Use random moves or any other playout strategy suitable for your game
+		// Return the final score of the playout
+		// return 0; // Placeholder; replace with your implementation
+		// Create a copy of the game board to perform the playout
+		CXBoard playoutBoard = B.copy();
+
+		boolean isMaxPlayer = isFirst;
+
+		while (depth > 0 && playoutBoard.gameState() == CXGameState.OPEN) {
+			// Get all available legal moves in the current state
+			Integer[] availableMoves = playoutBoard.getAvailableColumns();
+
+			if (availableMoves.length == 0) {
+				// No legal moves available, the game is a draw
+				break;
+			}
+
+			// Choose a random move from the available legal moves
+			int randomMove = availableMoves[new Random().nextInt(availableMoves.length)];
+
+			// Make the selected move on the board
+			playoutBoard.markColumn(randomMove);
+
+			// Switch to the next player
+			isMaxPlayer = !isMaxPlayer;
+
+			depth--;
+		}
+
+		// Calculate the score based on the terminal state
+		int winPoints = 50;
+		if (playoutBoard.gameState() != CXGameState.OPEN) {
+			if (playoutBoard.gameState() == CXGameState.WINP1) {
+				if (!this.isFirst) return -winPoints; else return winPoints;
+			} else if (playoutBoard.gameState() == CXGameState.WINP2) {
+				if (!this.isFirst) return winPoints; else return -winPoints;
+			} else {
+				// The game is a draw
+				return 0;
+			}
+		} else {
+			// If the playout was stopped before reaching a terminal state, use a heuristic to estimate the score
+			return evaluatePosition(playoutBoard); // Implement your own heuristic evaluation function}
+		}
 	}
 
 
@@ -486,7 +496,7 @@ public class ALPlayer implements CXPlayer {
 	}
 
     public String playerName() {
-        return "ALPlayer";
+        return "MonteCarlo";
     }
 }
 
