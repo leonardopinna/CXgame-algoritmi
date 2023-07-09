@@ -42,7 +42,7 @@ public class ALPlayer implements CXPlayer {
         this.TIMEOUT = timeout_in_secs;
 
 		// Parametri aggiuntivi per il player
-        this.MAX_DEPTH 	= 6; 
+        this.MAX_DEPTH 	= 15; 
         this.columns 	= N;
         this.k 			= K;
         this.rows 		= M;
@@ -248,7 +248,9 @@ public class ALPlayer implements CXPlayer {
 						// allora è bloccata e interrompo il ciclo dopo aver azzerato il punteggio.
 						// Zero punti.
 						counter = 0;
-						if (index > 0) {break;}
+						if (index > 0) {
+							break;
+						}
 					}
 				}
 			}
@@ -412,54 +414,54 @@ public class ALPlayer implements CXPlayer {
 				checktime();
 
 				// INIZIO IMPLEMENTAZIONE PSEUDO-ARRAY ORDINATO AUTOMATICAMENTE
-				int dd = d;
-				List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
-				moves.sort(Comparator.comparingInt(col -> {
-					B.markColumn(col);
-					int score;
+				// int dd = d;
+				// List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
+				// moves.sort(Comparator.comparingInt(col -> {
+				// 	B.markColumn(col);
+				// 	int score;
 
-					try {
-						score = evaluateMove(B, false, dd - 1, Integer.MIN_VALUE, Integer.MAX_VALUE);
-						B.unmarkColumn();
+				// 	try {
+				// 		score = evaluateMove(B, false, dd - 1, Integer.MIN_VALUE, Integer.MAX_VALUE);
+				// 		B.unmarkColumn();
 				
-					} catch (Exception e) {
-						score = -1000;
-					}
-					return score;
-				}));
-				Collections.reverse(moves);
+				// 	} catch (TimeoutException e) {
+				// 		score = -1000;
+				// 	}
+				// 	return this.currentBestMove;
+				// }));
+				// Collections.reverse(moves);
 
-				this.currentBestMove = moves.get(0);
+				// this.currentBestMove = moves.get(0);
 
 				// FINE IMPLEMENTAZIONE PSEUDO-ARRAY ORDINATO AUTOMATICAMENTE
 
 
 				// INIZIO IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
 
-				// checktime();
-				// for (int i = 0; i < Q.length; i++) {
-				// 	B.markColumn(Q[i]);
-				// 	// Metto falso perchè avendo giocato la mia mossa simulata, è il turno dell'avversario.
-				// 	scores[i] = evaluateMove(B, false, d, Integer.MIN_VALUE, Integer.MAX_VALUE);
-				// 	B.unmarkColumn();
-				// }
+				checktime();
+				for (int i = 0; i < Q.length; i++) {
+					B.markColumn(Q[i]);
+					// Metto falso perchè avendo giocato la mia mossa simulata, è il turno dell'avversario.
+					scores[i] = evaluateMove(B, false, d, Integer.MIN_VALUE, Integer.MAX_VALUE);
+					B.unmarkColumn();
+				}
 
-				// for (int i = 0; i < Q.length; i++) {
-				// 	if (scores[i] > bestScore) {
-				// 		nextMove = Q[i];
-				// 		bestScore = scores[i];
-				// 	}
-				// }
+				for (int i = 0; i < Q.length; i++) {
+					if (scores[i] > bestScore) {
+						nextMove = Q[i];
+						bestScore = scores[i];
+					}
+				}
 
 				// System.out.println("Fine del livello " + d + " dopo " + (System.currentTimeMillis() - this.START));
-				// this.currentBestMove = nextMove;
+				this.currentBestMove = nextMove;
 
 				// FINE IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
 					
 			}
 
 		} catch (TimeoutException e) {
-			return 0; //orderedMoves[0];
+			return this.currentBestMove; //orderedMoves[0];
 		}
 
 		return this.currentBestMove;
