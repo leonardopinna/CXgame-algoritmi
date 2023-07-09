@@ -1,4 +1,4 @@
-package connectx.ALPlayer;
+package connectx.LeonAndreAle;
 import java.util.Comparator;
 import connectx.CXPlayer;
 import connectx.CXBoard;
@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ALPlayer implements CXPlayer {
+public class LeonAndreAle implements CXPlayer {
     private Random rand;
     private CXGameState myWin;
     private CXGameState yourWin;
@@ -34,7 +34,7 @@ public class ALPlayer implements CXPlayer {
 	private int maxDepthReached;
 	
     /* Default empty constructor */
-    public ALPlayer() {
+    public LeonAndreAle() {
     }
 
     public void initPlayer(int M, int N, int K, boolean first, int timeout_in_secs) {
@@ -184,6 +184,8 @@ public class ALPlayer implements CXPlayer {
 						// attualmente valutata, azzero il punteggio e riparto. Se la cella è dopo la cella attuale, 
 						// allora è bloccata e interrompo il ciclo dopo aver azzerato il punteggio.
 						// Zero punti.
+
+						// Il conteggio va azzerato solo se ho trovato una cella dell'avversario a distanza inferiore rispetto a X, perchè è possibile inserire X-1 pedine di fila oltre o prima della pedina e arrivare a X (considerando la pedina valutata)
 						counter = 0;
 						if (index > 0) {break;}
 					}
@@ -483,12 +485,6 @@ public class ALPlayer implements CXPlayer {
 					Q[i] = pair.getKey();
 					scores[i] = pair.getValue();
 				}
-	
-				// Aggiornare il valore di nextMove e bestScore
-				/*if (scores[0] > bestScore) {
-					nextMove = Q[0];
-					bestScore = scores[0];
-				}*/
 
 				if ( d > this.maxDepthReached) {
 					this.maxDepthReached = d;
@@ -565,7 +561,7 @@ public class ALPlayer implements CXPlayer {
 	}
 
     public String playerName() {
-        return "ALPlayer";
+        return "LeonAndreAle";
     }
 }
 
