@@ -341,15 +341,15 @@ public class MonteCarlo implements CXPlayer {
 	
 	public int monteCarloSearch(CXBoard B) throws TimeoutException {
 		// Inizializzo i parametri: mosse possibili e punteggio.
-		int[] scores = new int[B.N];
 		int bestScore = Integer.MIN_VALUE;
 		Integer[] Q = B.getAvailableColumns();
 		int nextMove = Q[rand.nextInt(Q.length)];
+		int[] scores = new int[Q.length];
 
 
 
 		// Parametro: numero di routine valutare. Più è alto, meglio è.
-		int simulations = 50; 
+		int simulations = 5000; 
 
 		// Parametro: simulazioni per ogni routine mosse, salva la migliore mossa trovata in questo momento
 		int routine = 200;
@@ -381,7 +381,9 @@ public class MonteCarlo implements CXPlayer {
 				return this.currentBestMove;
 			}
 		}
+
 		// Se il tempo lo permette, eseguo tutte le simulazioni e ritorno la mossa migliore trovata
+		System.out.println("Finito il ciclo, aumenta le simulazioni pollo.");
 		return this.currentBestMove;
 	}	
 
@@ -423,6 +425,8 @@ public class MonteCarlo implements CXPlayer {
 			// Get all available legal moves in the current state
 			Integer[] availableMoves = playoutBoard.getAvailableColumns();
 
+			checktime();
+
 			if (availableMoves.length == 0) {
 				// No legal moves available, the game is a draw
 				break;
@@ -454,62 +458,9 @@ public class MonteCarlo implements CXPlayer {
 			}
 		} else {
 			// If the playout was stopped before reaching a terminal state, use a heuristic to estimate the score
-			return evaluatePosition(playoutBoard); // Implement your own heuristic evaluation function}
+			return evaluatePosition(playoutBoard);
 		}
 	}
-
-
-	// Algoritmo alpha-beta pruning di ricerca della mossa migliore.
-	// private int evaluateMove(CXBoard B, boolean maxPlayer, int depth, int alpha, int beta) throws TimeoutException {
-	// 	checktime();
-	// 	if (B.gameState() == myWin) {
-	// 		return Integer.MAX_VALUE; // Vittoria immediata
-	// 	}
-	// 	if (B.gameState() == yourWin) {
-	// 		return Integer.MIN_VALUE; // Sconfitta immediata
-	// 	}
-	// 	if (B.gameState() == CXGameState.DRAW) {
-	// 		return 0;
-	// 	}
-	// 	if (depth == 0) {
-	// 		// Raggiunto il limite di profondità della ricerca, valuta la posizione corrente
-	// 		return simulateMonteCarlo(B, maxPlayer);
-	// 	}
-	
-	// 	int bestScore;
-	// 	if (maxPlayer) {
-	// 		bestScore = Integer.MIN_VALUE;
-	// 		Integer[] moves = B.getAvailableColumns();
-	// 		for (int move : moves) {
-	// 			B.markColumn(move);
-	// 			int score = evaluateMove(B, false, depth - 1, alpha, beta);
-	// 			B.unmarkColumn();
-	// 			bestScore = Math.max(bestScore, score);
-	// 			if (bestScore == Integer.MAX_VALUE) break;
-	// 			alpha = Math.max(alpha, score);
-	// 			if (beta <= alpha) {
-	// 				break; // Beta cut-off
-	// 			}
-	// 		}
-	// 	} else {
-	// 		bestScore = Integer.MAX_VALUE;
-	// 		Integer[] moves = B.getAvailableColumns();
-	// 		for (int move : moves) {
-	// 			B.markColumn(move);
-	// 			int score = evaluateMove(B, true, depth - 1, alpha, beta);
-	// 			B.unmarkColumn();
-	// 			bestScore = Math.min(bestScore, score);
-	// 			if (bestScore == Integer.MIN_VALUE) break;
-
-	// 			beta = Math.min(beta, score);
-	// 			if (beta <= alpha) {
-	// 				break; // Alpha cut-off
-	// 			}
-	// 		}
-	// 	}
-	
-	// 	return bestScore;
-	// }
 
     public String playerName() {
         return "MonteCarlo";

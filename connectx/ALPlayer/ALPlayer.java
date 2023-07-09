@@ -84,7 +84,8 @@ public class ALPlayer implements CXPlayer {
 
 			if (B.getMarkedCells().length < 2) {
 				return (B.N) / 2;
-			}
+			} 
+		
 			if (singleMoveBlock(B) >= 0) return singleMoveBlock(B);
 
             int col = iterativeDeepening(B, MAX_DEPTH);
@@ -449,6 +450,7 @@ public class ALPlayer implements CXPlayer {
 					B.unmarkColumn();
 				}
 
+				
 				for (int i = 0; i < Q.length; i++) {
 					if (scores[i] > bestScore) {
 						nextMove = Q[i];
