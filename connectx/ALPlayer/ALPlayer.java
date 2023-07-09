@@ -30,6 +30,8 @@ public class ALPlayer implements CXPlayer {
     private int rows;
 	private boolean isFirst ;
 	private int currentBestMove; // tiene traccia della best col fino a questo momento.
+
+	private int maxDepthReached;
 	
     /* Default empty constructor */
     public ALPlayer() {
@@ -42,11 +44,13 @@ public class ALPlayer implements CXPlayer {
         this.TIMEOUT = timeout_in_secs;
 
 		// Parametri aggiuntivi per il player
-        this.MAX_DEPTH 	= 15; 
+        this.MAX_DEPTH 	= 30; 
         this.columns 	= N;
         this.k 			= K;
         this.rows 		= M;
 		this.isFirst 	= first;
+
+		this.maxDepthReached = 0;
 		
     }
 
@@ -119,7 +123,7 @@ public class ALPlayer implements CXPlayer {
 
 			// Parametri di assegnazione punteggio
 			int emptyVal 	= 10;
-			int columnVal 	= 35;
+			int columnVal 	= 15;
 			int rowVal 		= 25;
 			int diagVal		= 25;
 
@@ -129,7 +133,6 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite superiore della matrice. Interrompo la ricerca per colonna.
 				if ( x - index  <= -1) {
 					// Zero punti perchè non posso fare molto.
-					counter = 0;
 					break; 
 				}
 
@@ -162,7 +165,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
+					// counter = 0;
 					break; 
 				}
 
@@ -195,7 +198,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite sinistro della matrice. Interrompo la ricerca.
 				if ( y - index  <= -1) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
+					// counter = 0;
 					break; 
 				}
 
@@ -228,7 +231,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite destro o fondo della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x + index >= getRows()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
+					// counter = 0;
 
 					break; 
 				}
@@ -264,7 +267,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite sinistro o inferiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x + index >= getRows()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.					
-					counter = 0;
+					// counter = 0;
 
 					break; 
 				}
@@ -298,7 +301,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite superiore o destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x - index < 0 ) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.				
-					counter = 0;
+					// counter = 0;
 
 					break; 
 				}
@@ -332,7 +335,7 @@ public class ALPlayer implements CXPlayer {
 				// Arrivo oltre il limite sinistro o superiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x - index < 0) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
-					counter = 0;
+					// counter = 0;
 					
 					break; 
 				}
@@ -395,9 +398,6 @@ public class ALPlayer implements CXPlayer {
 
 	public int iterativeDeepening(CXBoard B, int depth) throws TimeoutException {
 
-		
-		
-
 		// Io sono il giocatore che massimizza
 		int bestScore = Integer.MIN_VALUE;
 		
@@ -406,14 +406,17 @@ public class ALPlayer implements CXPlayer {
 		int[] scores = new int[Q.length];
 
 		try {
+
+			long MoveStartTime = System.currentTimeMillis();
+
 			for (int d = 1; d <= depth; d++) {
 				// Ci sono due implmenetazioni dell'array: array classico e array-lista
 				// (preferibile) che ordina già le mosse dalla migliore alla peggiore.
 				// Commentare una delle due parti perchè fanno la stessa cosa.
 
-				checktime();
-
 				// INIZIO IMPLEMENTAZIONE PSEUDO-ARRAY ORDINATO AUTOMATICAMENTE
+				// checktime();
+
 				// int dd = d;
 				// List<Integer> moves = new ArrayList<>(Arrays.asList(Q));
 				// moves.sort(Comparator.comparingInt(col -> {
@@ -453,7 +456,12 @@ public class ALPlayer implements CXPlayer {
 					}
 				}
 
-				// System.out.println("Fine del livello " + d + " dopo " + (System.currentTimeMillis() - this.START));
+				if ( d > this.maxDepthReached) {
+					this.maxDepthReached = d;
+					System.out.println("Raggiunta " + this.maxDepthReached + " dopo " + (System.currentTimeMillis() - MoveStartTime));
+
+				}
+
 				this.currentBestMove = nextMove;
 
 				// FINE IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
