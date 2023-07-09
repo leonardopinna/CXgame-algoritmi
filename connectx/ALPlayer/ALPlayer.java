@@ -129,7 +129,7 @@ public class ALPlayer implements CXPlayer {
 			int diagVal		= 25;
 
 			// Valutazione della colonna (verso l'alto)
-			for (int index = - getK() + 1 ; index < getK(); index++) {
+			for (int index = - getK() ; index <= getK(); index++) {
 				
 				// Arrivo oltre il limite superiore della matrice. Interrompo la ricerca per colonna.
 				if ( x - index  <= -1) {
@@ -161,7 +161,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della riga (sx verso dx)
-			for (int index =  - getK() + 1 ; index < getK(); index++) {
+			for (int index =  - getK() ; index <= getK(); index++) {
 				
 				// Arrivo oltre il limite destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns()) {
@@ -194,8 +194,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della riga (dx verso sx)
-			for (int index = - getK() + 1; index < getK(); index++) {
-				
+			for (int index =  - getK() ; index <= getK(); index++) {				
 				// Arrivo oltre il limite sinistro della matrice. Interrompo la ricerca.
 				if ( y - index  <= -1) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
@@ -227,8 +226,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della diagonale (alto-sx verso basso-dx)
-			for (int index = - getK() + 1; index < getK(); index ++ ) {
-				
+			for (int index =  - getK() ; index <= getK(); index++) {				
 				// Arrivo oltre il limite destro o fondo della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x + index >= getRows()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.
@@ -263,8 +261,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della diagonale (alto-dx verso basso-sx)
-			for (int index = - getK() + 1; index < getK(); index ++ ) {
-				
+			for (int index =  - getK() ; index <= getK(); index++) {
 				// Arrivo oltre il limite sinistro o inferiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x + index >= getRows()) {
 					// Counter non è azzerato perchè posso avere avuto punteggio nelle celle precedenti.					
@@ -297,7 +294,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della diagonale (basso-sx verso alto-dx)
-			for (int index = - getK() + 1; index < getK(); index ++ ) {
+			for (int index =  - getK() ; index <= getK(); index++) {
 				
 				// Arrivo oltre il limite superiore o destro della matrice. Interrompo la ricerca.
 				if ( y + index  >= getColumns() || x - index < 0 ) {
@@ -331,7 +328,7 @@ public class ALPlayer implements CXPlayer {
 			counter = 0;
 
 			// Valutazione della diagonale (basso-dx verso alto-sx)
-			for (int index = - getK() + 1; index < getK(); index ++ ) {
+			for (int index =  - getK() ; index <= getK(); index++) {
 				
 				// Arrivo oltre il limite sinistro o superiore della matrice. Interrompo la ricerca.
 				if ( y - index  < 0 || x - index < 0) {
@@ -397,6 +394,26 @@ public class ALPlayer implements CXPlayer {
 
 					// this.bestCol = orderedMoves[0];
 
+
+	public class Pair<K, V> {
+		private final K key;
+		private final V value;
+	
+		public Pair(K key, V value) {
+			this.key = key;
+			this.value = value;
+		}
+	
+		public K getKey() {
+			return key;
+		}
+	
+		public V getValue() {
+			return value;
+		}
+	}
+
+
 	public int iterativeDeepening(CXBoard B, int depth) throws TimeoutException {
 
 		// Io sono il giocatore che massimizza
@@ -451,12 +468,27 @@ public class ALPlayer implements CXPlayer {
 				}
 
 				
+				// Creare una lista di coppie (Q[i], scores[i])
+				List<Pair<Integer, Integer>> pairList = new ArrayList<>();
 				for (int i = 0; i < Q.length; i++) {
-					if (scores[i] > bestScore) {
-						nextMove = Q[i];
-						bestScore = scores[i];
-					}
+					pairList.add(new Pair<>(Q[i], scores[i]));
 				}
+	
+				// Ordinare la lista in base al punteggio in ordine decrescente
+				pairList.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+	
+				// Aggiornare gli array Q e scores con gli elementi ordinati
+				for (int i = 0; i < pairList.size(); i++) {
+					Pair<Integer, Integer> pair = pairList.get(i);
+					Q[i] = pair.getKey();
+					scores[i] = pair.getValue();
+				}
+	
+				// Aggiornare il valore di nextMove e bestScore
+				/*if (scores[0] > bestScore) {
+					nextMove = Q[0];
+					bestScore = scores[0];
+				}*/
 
 				if ( d > this.maxDepthReached) {
 					this.maxDepthReached = d;
@@ -464,7 +496,7 @@ public class ALPlayer implements CXPlayer {
 
 				}
 
-				this.currentBestMove = nextMove;
+				this.currentBestMove = Q[0];
 
 				// FINE IMPLEMENTAZIONE ARRAY CLASSICO NON ORDINATO
 					
